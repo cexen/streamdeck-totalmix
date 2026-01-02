@@ -109,7 +109,7 @@
   "Version": "3.3.5",
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "4.3"
+    "MinimumVersion": "6.6"
   },
   "OS": [
     {

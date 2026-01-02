@@ -13,7 +13,7 @@ namespace streamdeck_totalmix
 {
     [PluginActionId("de.shells.totalmix.midicc.action")]
 
-public class MidiCc : PluginBase
+public class MidiCc : KeypadBase
     {
         private class PluginSettings
         {

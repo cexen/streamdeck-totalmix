@@ -1,4 +1,4 @@
-﻿using BarRaider.SdTools;
+using BarRaider.SdTools;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -8,7 +8,7 @@ using BarRaider.SdTools.Wrappers;
 namespace streamdeck_totalmix
 {
     [PluginActionId("de.shells.totalmix.osconoff.action")]
-    public class OscOnOff : PluginBase
+    public class OscOnOff : KeypadBase
     {
         private class PluginSettings
         {
@@ -209,7 +209,7 @@ namespace streamdeck_totalmix
                                             {
                                                 DrawImage(trackname, "Images/muteOn.png");
                                             }
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
@@ -225,7 +225,7 @@ namespace streamdeck_totalmix
                                             {
                                                 DrawImage(trackname, "Images/muteOff.png");
                                             }
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                     else

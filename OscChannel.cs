@@ -8,7 +8,7 @@ using System.Drawing;
 namespace streamdeck_totalmix
 {
     [PluginActionId("de.shells.totalmix.oscchannel.action")]
-    public class OscChannel : PluginBase
+    public class OscChannel : KeypadBase
     {
         private class PluginSettings
         {

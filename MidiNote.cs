@@ -21,7 +21,7 @@ namespace streamdeck_totalmix
 {
     [PluginActionId("de.shells.totalmix.midinote.action")]
 
-public class MidiNote : PluginBase
+public class MidiNote : KeypadBase
     {
         private class PluginSettings
         {

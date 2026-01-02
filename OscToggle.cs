@@ -1,4 +1,4 @@
-﻿using BarRaider.SdTools;
+using BarRaider.SdTools;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -8,7 +8,7 @@ using BarRaider.SdTools.Wrappers;
 namespace streamdeck_totalmix
 {
     [PluginActionId("de.shells.totalmix.osctoggle.action")]
-    public class OscToggle : PluginBase
+    public class OscToggle : KeypadBase
     {
         private class PluginSettings
         {
@@ -101,7 +101,7 @@ namespace streamdeck_totalmix
             }
             if (this.settings.Latch == true)
             {
-                Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                Connection.SetStateAsync(1);
             }
             if (settings.SelectedAction == "34" || settings.SelectedAction == "35")
             {
@@ -149,7 +149,7 @@ namespace streamdeck_totalmix
                     Sender.Send(this.settings.Name, 1, Globals.interfaceIp, Globals.interfacePort);
                 }
                 DrawImage("", "Images/actionDefaultImage.png");
-                Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                Connection.SetStateAsync(0);
             }
         }
 
@@ -175,12 +175,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Global Mute", "Images/muteOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Global Mute", "Images/muteOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
@@ -193,12 +193,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Global Solo", "Images/soloOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Global Solo", "Images/soloOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
@@ -217,12 +217,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Trim", "Images/trimOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Trim", "Images/trimOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
@@ -235,12 +235,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Main Dim", "Images/dimOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Main Dim", "Images/dimOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
@@ -253,12 +253,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Speaker B", "Images/speakerBOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Speaker B", "Images/speakerBOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
@@ -274,12 +274,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Main Mute FX", "Images/muteFXOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Main Mute FX", "Images/muteFXOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
@@ -292,12 +292,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Main Mono", "Images/monoOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Main Mono", "Images/monoOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
@@ -310,12 +310,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Ext In", "Images/extInOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Ext In", "Images/extInOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
@@ -328,12 +328,12 @@ namespace streamdeck_totalmix
                                         if (result == "1")
                                         {
                                             DrawImage("Talkback", "Images/talkbackOn.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(1, Connection.ContextId);
+                                            Connection.SetStateAsync(1);
                                         }
                                         else
                                         {
                                             DrawImage("Talkback", "Images/talkbackOff.png");
-                                            Connection.StreamDeckConnection.SetStateAsync(0, Connection.ContextId);
+                                            Connection.SetStateAsync(0);
                                         }
                                     }
                                 }
