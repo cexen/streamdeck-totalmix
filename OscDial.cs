@@ -12,9 +12,15 @@ namespace streamdeck_totalmix
     public class OscDial : EncoderBase
     {
         private const string LayoutPath = "layouts/osc-dial.json";
+        private const string DialFunctionVolume = "volume";
+        private const string DialFunctionPan = "pan";
+        private const string TouchActionMute = "mute";
+        private const string TouchActionSolo = "solo";
+        private const string TouchActionNone = "none";
         private const float DefaultStep = 0.02f;
         // Slightly above 0 dB on TotalMix's 0..1 scale to avoid "-0.0 dB" display
         private const float UnityFaderValue = 836.5f / 1023f;
+        private const float CenterPanValue = 0.5f;
         private const int LocalValueMaxMs = 1000;
         private const float LocalValueEpsilon = 0.002f;
 
@@ -29,7 +35,9 @@ namespace streamdeck_totalmix
                     Bus = "Input",
                     DisplayChannelName = true,
                     ChannelCount = Globals.channelCount,
-                    DialStep = DefaultStep
+                    DialStep = DefaultStep,
+                    DialFunction = DialFunctionVolume,
+                    TouchAction = TouchActionMute
                 };
                 return instance;
             }
@@ -53,6 +61,12 @@ namespace streamdeck_totalmix
             [JsonProperty(PropertyName = "DialStep")]
             public float DialStep { get; set; }
 
+            [JsonProperty(PropertyName = "DialFunction")]
+            public string DialFunction { get; set; }
+
+            [JsonProperty(PropertyName = "TouchAction")]
+            public string TouchAction { get; set; }
+
         }
 
         private PluginSettings settings;
@@ -67,6 +81,7 @@ namespace streamdeck_totalmix
         private float? localValue = null;
         private string localValueBus = String.Empty;
         private int localValueChannelIndex = 0;
+        private string localValueAddress = String.Empty;
         private DateTime localValueAt = DateTime.MinValue;
 
         public OscDial(ISDConnection connection, InitialPayload payload) : base(connection, payload)
@@ -95,9 +110,32 @@ namespace streamdeck_totalmix
                     this.settings.DialStep = DefaultStep;
                     Connection.SetSettingsAsync(JObject.FromObject(settings));
                 }
+                if (!payload.Settings.ContainsKey("DialFunction"))
+                {
+                    this.settings.DialFunction = DialFunctionVolume;
+                    Connection.SetSettingsAsync(JObject.FromObject(settings));
+                }
+                if (!payload.Settings.ContainsKey("TouchAction"))
+                {
+                    this.settings.TouchAction = TouchActionMute;
+                    Connection.SetSettingsAsync(JObject.FromObject(settings));
+                }
                 if (this.settings.ChannelCount != Globals.channelCount)
                 {
                     this.settings.ChannelCount = Globals.channelCount;
+                    Connection.SetSettingsAsync(JObject.FromObject(settings));
+                }
+
+                string normalizedFunction = NormalizeDialFunction(this.settings.DialFunction);
+                if (this.settings.DialFunction != normalizedFunction)
+                {
+                    this.settings.DialFunction = normalizedFunction;
+                    Connection.SetSettingsAsync(JObject.FromObject(settings));
+                }
+                string normalizedTouchAction = NormalizeTouchAction(this.settings.TouchAction);
+                if (this.settings.TouchAction != normalizedTouchAction)
+                {
+                    this.settings.TouchAction = normalizedTouchAction;
                     Connection.SetSettingsAsync(JObject.FromObject(settings));
                 }
 
@@ -118,7 +156,7 @@ namespace streamdeck_totalmix
                 return;
             }
 
-            if (!TryResolveTarget(out string bus, out int channelIndex, out string volumeAddress))
+            if (!TryResolveTarget(out string bus, out int channelIndex, out string parameterAddress, out string dialFunction))
             {
                 ShowAlertThrottled();
                 return;
@@ -130,7 +168,7 @@ namespace streamdeck_totalmix
                 return;
             }
 
-            if (!Globals.bankSettings.TryGetValue(bus, out var busSettings) || !busSettings.TryGetValue(volumeAddress, out string currentValueRaw))
+            if (!Globals.bankSettings.TryGetValue(bus, out var busSettings) || !busSettings.TryGetValue(parameterAddress, out string currentValueRaw))
             {
                 ShowAlertThrottled();
                 return;
@@ -151,11 +189,11 @@ namespace streamdeck_totalmix
             float newValue = Clamp(currentValue + step, 0f, 1f);
 
             Sender.Send($"/1/bus{bus}", 1, Globals.interfaceIp, Globals.interfacePort);
-            Sender.Send(volumeAddress, newValue, Globals.interfaceIp, Globals.interfacePort);
-            busSettings[volumeAddress] = newValue.ToString(CultureInfo.InvariantCulture);
-            SetLocalValue(bus, channelIndex, newValue);
+            Sender.Send(parameterAddress, newValue, Globals.interfaceIp, Globals.interfacePort);
+            busSettings[parameterAddress] = newValue.ToString(CultureInfo.InvariantCulture);
+            SetLocalValue(bus, channelIndex, parameterAddress, newValue);
 
-            UpdateFeedbackState(bus, channelIndex, volumeAddress, newValue, busSettings, preferComputedValue: true);
+            UpdateFeedbackState(bus, channelIndex, parameterAddress, newValue, busSettings, preferComputedValue: true);
         }
 
         public override void Dispose()
@@ -176,7 +214,7 @@ namespace streamdeck_totalmix
                 return;
             }
 
-            if (!TryResolveTarget(out string bus, out int channelIndex, out string volumeAddress))
+            if (!TryResolveTarget(out string bus, out int channelIndex, out string parameterAddress, out string dialFunction))
             {
                 ShowAlertThrottled();
                 return;
@@ -184,12 +222,13 @@ namespace streamdeck_totalmix
 
             Sender.Send($"/1/bus{bus}", 1, Globals.interfaceIp, Globals.interfacePort);
 
-            Sender.Send(volumeAddress, UnityFaderValue, Globals.interfaceIp, Globals.interfacePort);
+            float defaultValue = dialFunction == DialFunctionPan ? CenterPanValue : UnityFaderValue;
+            Sender.Send(parameterAddress, defaultValue, Globals.interfaceIp, Globals.interfacePort);
             if (Globals.mirroringRequested && Globals.backgroundConnection && Globals.bankSettings.TryGetValue(bus, out var busSettings))
             {
-                busSettings[volumeAddress] = UnityFaderValue.ToString(CultureInfo.InvariantCulture);
-                SetLocalValue(bus, channelIndex, UnityFaderValue);
-                UpdateFeedbackState(bus, channelIndex, volumeAddress, UnityFaderValue, busSettings, preferComputedValue: true);
+                busSettings[parameterAddress] = defaultValue.ToString(CultureInfo.InvariantCulture);
+                SetLocalValue(bus, channelIndex, parameterAddress, defaultValue);
+                UpdateFeedbackState(bus, channelIndex, parameterAddress, defaultValue, busSettings, preferComputedValue: true);
             }
         }
 
@@ -208,20 +247,24 @@ namespace streamdeck_totalmix
                 return;
             }
 
-            if (!TryResolveTarget(out string bus, out int channelIndex, out string volumeAddress))
+            if (!TryResolveTarget(out string bus, out int channelIndex, out string parameterAddress, out string dialFunction))
             {
                 ShowAlertThrottled();
                 return;
             }
 
-            string muteAddress = $"/1/mute/1/{channelIndex}";
-            if (Globals.mirroringRequested && Globals.backgroundConnection && Globals.bankSettings.TryGetValue(bus, out var muteSettings) && muteSettings.TryGetValue(muteAddress, out string muteValue))
+            string toggleAddress = GetTouchAddress(bus, channelIndex);
+            if (String.IsNullOrEmpty(toggleAddress))
             {
-                bool isMuted = muteValue == "1";
+                return;
+            }
+            if (Globals.mirroringRequested && Globals.backgroundConnection && Globals.bankSettings.TryGetValue(bus, out var toggleSettings) && toggleSettings.TryGetValue(toggleAddress, out string toggleValue))
+            {
+                bool isEnabled = toggleValue == "1";
                 Sender.Send($"/1/bus{bus}", 1, Globals.interfaceIp, Globals.interfacePort);
-                Sender.Send(muteAddress, isMuted ? 0 : 1, Globals.interfaceIp, Globals.interfacePort);
-                muteSettings[muteAddress] = isMuted ? "0" : "1";
-                UpdateFeedbackState(bus, channelIndex, volumeAddress, null, muteSettings);
+                Sender.Send(toggleAddress, isEnabled ? 0 : 1, Globals.interfaceIp, Globals.interfacePort);
+                toggleSettings[toggleAddress] = isEnabled ? "0" : "1";
+                UpdateFeedbackState(bus, channelIndex, parameterAddress, null, toggleSettings);
             }
             else
             {
@@ -254,7 +297,7 @@ namespace streamdeck_totalmix
                 return;
             }
 
-            if (!TryResolveTarget(out string bus, out int channelIndex, out string volumeAddress))
+            if (!TryResolveTarget(out string bus, out int channelIndex, out string parameterAddress, out _))
             {
                 UpdateFeedback("No channel", String.Empty, String.Empty, String.Empty, 0f);
                 return;
@@ -269,27 +312,28 @@ namespace streamdeck_totalmix
             string channelTitle = GetChannelTitle(channelIndex, busSettings);
 
             float? currentValue = null;
-            if (busSettings.TryGetValue(volumeAddress, out string currentValueRaw) && TryParseFloat(currentValueRaw, out float parsedValue))
+            if (busSettings.TryGetValue(parameterAddress, out string currentValueRaw) && TryParseFloat(currentValueRaw, out float parsedValue))
             {
                 currentValue = parsedValue;
             }
 
             float displayValue = currentValue ?? 0f;
             bool preferComputedValue = false;
-            if (TryGetDisplayValue(bus, channelIndex, currentValue, out float chosenValue, out bool preferComputed))
+            if (TryGetDisplayValue(bus, channelIndex, parameterAddress, currentValue, out float chosenValue, out bool preferComputed))
             {
                 displayValue = chosenValue;
                 preferComputedValue = preferComputed;
             }
 
-            UpdateFeedbackState(bus, channelIndex, volumeAddress, displayValue, busSettings, channelTitle, preferComputedValue);
+            UpdateFeedbackState(bus, channelIndex, parameterAddress, displayValue, busSettings, channelTitle, preferComputedValue);
         }
 
-        private bool TryResolveTarget(out string bus, out int channelIndex, out string volumeAddress)
+        private bool TryResolveTarget(out string bus, out int channelIndex, out string parameterAddress, out string dialFunction)
         {
             bus = settings.Bus;
             channelIndex = 1;
-            volumeAddress = settings.Name;
+            parameterAddress = settings.Name;
+            dialFunction = NormalizeDialFunction(settings.DialFunction);
 
             if (!Int32.TryParse(settings.SelectedAction, out int selectedAction))
             {
@@ -318,12 +362,14 @@ namespace streamdeck_totalmix
                 channelIndex = selectedAction - (channelCount * 2);
             }
 
-            volumeAddress = $"/1/volume{channelIndex}";
+            string addressSuffix = dialFunction == DialFunctionPan ? "pan" : "volume";
+            parameterAddress = $"/1/{addressSuffix}{channelIndex}";
 
-            if (settings.Bus != bus || settings.Name != volumeAddress)
+            if (settings.Bus != bus || settings.Name != parameterAddress || settings.DialFunction != dialFunction)
             {
                 settings.Bus = bus;
-                settings.Name = volumeAddress;
+                settings.Name = parameterAddress;
+                settings.DialFunction = dialFunction;
                 Connection.SetSettingsAsync(JObject.FromObject(settings));
             }
 
@@ -347,31 +393,31 @@ namespace streamdeck_totalmix
             return float.TryParse(raw, NumberStyles.Float, CultureInfo.CurrentCulture, out value);
         }
 
-        private void UpdateFeedbackState(string bus, int channelIndex, string volumeAddress, float? barValue, Dictionary<string, string> busSettings, string channelTitleOverride = null, bool preferComputedValue = false)
+        private void UpdateFeedbackState(string bus, int channelIndex, string parameterAddress, float? barValue, Dictionary<string, string> busSettings, string channelTitleOverride = null, bool preferComputedValue = false)
         {
             string channelTitle = channelTitleOverride ?? GetChannelTitle(channelIndex, busSettings);
 
             float value = barValue ?? 0f;
-            if (barValue == null && busSettings != null && busSettings.TryGetValue(volumeAddress, out string currentValueRaw) && TryParseFloat(currentValueRaw, out float parsedValue))
+            if (barValue == null && busSettings != null && busSettings.TryGetValue(parameterAddress, out string currentValueRaw) && TryParseFloat(currentValueRaw, out float parsedValue))
             {
                 value = parsedValue;
             }
 
-            var displayText = BuildValueText(busSettings, volumeAddress, value, preferComputedValue);
-            string muteText = GetMuteText(busSettings, channelIndex);
-            UpdateFeedback(channelTitle, muteText, displayText.value, displayText.unit, value);
+            var displayText = BuildValueText(busSettings, parameterAddress, value, preferComputedValue);
+            string toggleText = GetToggleText(bus, busSettings, channelIndex);
+            UpdateFeedback(channelTitle, toggleText, displayText.value, displayText.unit, value);
         }
 
-        private (string value, string unit) BuildValueText(Dictionary<string, string> busSettings, string volumeAddress, float value, bool preferComputedValue)
+        private (string value, string unit) BuildValueText(Dictionary<string, string> busSettings, string parameterAddress, float value, bool preferComputedValue)
         {
             string valueText = String.Empty;
-            if (!preferComputedValue && busSettings != null && busSettings.TryGetValue($"{volumeAddress}Val", out string oscValue))
+            if (!preferComputedValue && busSettings != null && busSettings.TryGetValue($"{parameterAddress}Val", out string oscValue))
             {
                 valueText = oscValue;
             }
             if (String.IsNullOrWhiteSpace(valueText))
             {
-                valueText = FormatFaderValue(value);
+                valueText = IsPanFunction() ? FormatPanValue(value) : FormatFaderValue(value);
             }
 
             return SplitValueUnit(valueText);
@@ -416,6 +462,23 @@ namespace streamdeck_totalmix
             }
 
             return $"{dB:0.0} dB";
+        }
+
+        private static string FormatPanValue(float value)
+        {
+            float clamped = Clamp(value, 0f, 1f);
+            int pan = (int)Math.Round((clamped - 0.5f) * 200f);
+            if (Math.Abs(pan) <= 0)
+            {
+                return "C";
+            }
+
+            if (pan < 0)
+            {
+                return $"L {Math.Abs(pan)}";
+            }
+
+            return $"R {pan}";
         }
 
         private void UpdateFeedback(string channelTitle, string muteText, string valueText, string unitText, float barValue)
@@ -507,20 +570,21 @@ namespace streamdeck_totalmix
             return !float.IsNaN(step) && step > 0f && step <= 1.0f;
         }
 
-        private void SetLocalValue(string bus, int channelIndex, float value)
+        private void SetLocalValue(string bus, int channelIndex, string parameterAddress, float value)
         {
             localValue = value;
             localValueBus = bus;
             localValueChannelIndex = channelIndex;
+            localValueAddress = parameterAddress;
             localValueAt = DateTime.UtcNow;
         }
 
-        private bool TryGetDisplayValue(string bus, int channelIndex, float? actualValue, out float displayValue, out bool preferComputedValue)
+        private bool TryGetDisplayValue(string bus, int channelIndex, string parameterAddress, float? actualValue, out float displayValue, out bool preferComputedValue)
         {
             preferComputedValue = false;
             displayValue = actualValue ?? 0f;
 
-            if (!localValue.HasValue || localValueBus != bus || localValueChannelIndex != channelIndex)
+            if (!localValue.HasValue || localValueBus != bus || localValueChannelIndex != channelIndex || localValueAddress != parameterAddress)
             {
                 return actualValue.HasValue;
             }
@@ -552,6 +616,7 @@ namespace streamdeck_totalmix
             localValue = null;
             localValueBus = String.Empty;
             localValueChannelIndex = 0;
+            localValueAddress = String.Empty;
             localValueAt = DateTime.MinValue;
         }
 
@@ -577,14 +642,75 @@ namespace streamdeck_totalmix
             return (trimmed, String.Empty);
         }
 
-        private static string GetMuteText(Dictionary<string, string> busSettings, int channelIndex)
+        private string GetToggleText(string bus, Dictionary<string, string> busSettings, int channelIndex)
         {
-            if (busSettings != null && busSettings.TryGetValue($"/1/mute/1/{channelIndex}", out string muteValue) && muteValue == "1")
+            string touchAction = NormalizeTouchAction(settings.TouchAction);
+            if (touchAction == TouchActionNone)
             {
-                return "M";
+                return String.Empty;
+            }
+            if (touchAction == TouchActionSolo && !IsSoloSupported(bus))
+            {
+                return String.Empty;
+            }
+            string address = touchAction == TouchActionSolo ? $"/1/solo/1/{channelIndex}" : $"/1/mute/1/{channelIndex}";
+            if (busSettings != null && busSettings.TryGetValue(address, out string toggleValue) && toggleValue == "1")
+            {
+                return touchAction == TouchActionSolo ? "S" : "M";
             }
 
             return String.Empty;
+        }
+
+        private string GetTouchAddress(string bus, int channelIndex)
+        {
+            string touchAction = NormalizeTouchAction(settings.TouchAction);
+            if (touchAction == TouchActionNone)
+            {
+                return String.Empty;
+            }
+            if (touchAction == TouchActionSolo && !IsSoloSupported(bus))
+            {
+                return String.Empty;
+            }
+            return touchAction == TouchActionSolo
+                ? $"/1/solo/1/{channelIndex}"
+                : $"/1/mute/1/{channelIndex}";
+        }
+
+        private static string NormalizeDialFunction(string value)
+        {
+            if (String.Equals(value, DialFunctionPan, StringComparison.OrdinalIgnoreCase))
+            {
+                return DialFunctionPan;
+            }
+
+            return DialFunctionVolume;
+        }
+
+        private static string NormalizeTouchAction(string value)
+        {
+            if (String.Equals(value, TouchActionSolo, StringComparison.OrdinalIgnoreCase))
+            {
+                return TouchActionSolo;
+            }
+
+            if (String.Equals(value, TouchActionNone, StringComparison.OrdinalIgnoreCase))
+            {
+                return TouchActionNone;
+            }
+
+            return TouchActionMute;
+        }
+
+        private bool IsPanFunction()
+        {
+            return NormalizeDialFunction(settings.DialFunction) == DialFunctionPan;
+        }
+
+        private static bool IsSoloSupported(string bus)
+        {
+            return !String.Equals(bus, "Output", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

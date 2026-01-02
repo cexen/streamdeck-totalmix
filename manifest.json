@@ -120,9 +120,9 @@
         "Icon": "Images/actionIcon",
         "layout": "layouts/osc-dial.json",
         "TriggerDescription": {
-          "Push": "Reset to 0 dB",
-          "Rotate": "Adjust volume",
-          "Touch": "Toggle mute"
+          "Push": "Reset to default value",
+          "Rotate": "Adjust selected value",
+          "Touch": "Toggle action (mute/solo/none)"
         }
       }
     }

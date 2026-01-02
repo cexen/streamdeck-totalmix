@@ -51,7 +51,15 @@ function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, 
         Bus = actionInfo.payload.settings.Bus;
         DisplayChannelName = actionInfo.payload.settings.DisplayChannelName;
         ChannelCount = actionInfo.payload.settings.ChannelCount;
+        DialFunction = actionInfo.payload.settings.DialFunction;
+        TouchAction = actionInfo.payload.settings.TouchAction;
         DialStep = actionInfo.payload.settings.DialStep;
+        if (DialFunction == undefined || DialFunction === null || DialFunction === "") {
+            DialFunction = "volume";
+        }
+        if (TouchAction == undefined || TouchAction === null || TouchAction === "") {
+            TouchAction = "mute";
+        }
         if (DialStep == undefined || DialStep === null || DialStep === "") {
             DialStep = 0.02;
         }
@@ -136,6 +144,8 @@ function setSettings(value, param) {
     if (param === "ControlValue") { ControlValue = payload.ControlValue }
     if (param === "DisplayChannelName") { DisplayChannelName = payload.DisplayChannelName }
     if (param === "ChannelCount") { ChannelCount = payload.ChannelCount }
+    if (param === "DialFunction") { DialFunction = payload.DialFunction }
+    if (param === "TouchAction") { TouchAction = payload.TouchAction }
     if (param === "DialStep") { DialStep = payload.DialStep }
     if (actionInfo.action === "de.shells.totalmix.osctoggle.action") {
         settings = {
@@ -171,6 +181,8 @@ function setSettings(value, param) {
             Bus: Bus,
             DisplayChannelName: DisplayChannelName,
             ChannelCount: ChannelCount,
+            DialFunction: DialFunction,
+            TouchAction: TouchAction,
             DialStep: DialStep
         }
     } else if (actionInfo.action === "de.shells.totalmix.midinote.action") {
@@ -785,6 +797,21 @@ function updateUI(pl, settings) {
             '       <label for="chk2"><span></span></label>',
             '</div>',
             '<div class="sdpi-item">',
+            '    <div class="sdpi-item-label">Dial Target</div>',
+            '    <select class="sdpi-item-value select" id="DialFunction" onchange="selectedOscDialFunction(event.target.value)">',
+            '        <option value="volume">Volume</option>',
+            '        <option value="pan">Pan</option>',
+            '    </select>',
+            '</div>',
+            '<div class="sdpi-item">',
+            '    <div class="sdpi-item-label">Touch Action</div>',
+            '    <select class="sdpi-item-value select" id="TouchAction" onchange="selectedOscDialTouchAction(event.target.value)">',
+            '        <option value="mute">Toggle Mute</option>',
+            '        <option value="solo">Toggle Solo</option>',
+            '        <option value="none">Do Nothing</option>',
+            '    </select>',
+            '</div>',
+            '<div class="sdpi-item">',
             '    <div class="sdpi-item-label">Dial Step</div>',
             '    <input class="sdpi-item-value" id="DialStep" type="number" min="0.001" max="1" step="0.001" onchange="setDialStep(event.target.value)">',
             '</div>',
@@ -792,9 +819,9 @@ function updateUI(pl, settings) {
             '    <div class="sdpi-item-label">Help</div>',
             '    <details class="sdpi-item-value">',
             '        <summary>Default Dial Mapping</summary>',
-            '        <p><font style="font-weight:bold">Rotate</font>: Volume (per tick).<br><font style="font-style: italic">Available: All Channels</font></p>',
-            '        <p><font style="font-weight:bold">Press</font>: Reset to 0 dB (unity gain).</p>',
-            '        <p><font style="font-weight:bold">Touch</font>: Toggle Mute.<br><font style="font-style: italic">Requires mirroring for state</font></p>',
+            '        <p><font style="font-weight:bold">Rotate</font>: Adjust selected value (volume/pan).<br><font style="font-style: italic">Available: All Channels</font></p>',
+            '        <p><font style="font-weight:bold">Press</font>: Reset to default value.</p>',
+            '        <p><font style="font-weight:bold">Touch</font>: Toggle selected action (mute/solo) or do nothing.<br><font style="font-style: italic">Requires mirroring for state. Solo is not available on Output channels; touch is ignored.</font></p>',
             '        <p><font style="font-weight:bold">Dial Step</font>: 0.001 to 1.0 (default 0.02).</p>',
             '    </details>',
             '</div>',
@@ -836,6 +863,14 @@ function updateUI(pl, settings) {
         } else {
             document.getElementById("chk2").checked = false;
         }
+        if (settings.DialFunction == undefined || settings.DialFunction === null || settings.DialFunction === "") {
+            settings.DialFunction = "volume";
+        }
+        document.getElementById("DialFunction").value = settings.DialFunction;
+        if (settings.TouchAction == undefined || settings.TouchAction === null || settings.TouchAction === "") {
+            settings.TouchAction = "mute";
+        }
+        document.getElementById("TouchAction").value = settings.TouchAction;
         if (settings.DialStep == undefined || settings.DialStep === null || settings.DialStep === "") {
             settings.DialStep = 0.02;
         }
@@ -1283,19 +1318,35 @@ function selectedOscChannelFunction(selectedOscChannelFunction, oscChannelSelect
     setSettings(bus, 'Bus');
 }
 
+function selectedOscDialFunction(selectedDialFunction) {
+    DialFunction = selectedDialFunction;
+    setSettings(selectedDialFunction, 'DialFunction');
+    selectedOscDialChannel();
+}
+
+function selectedOscDialTouchAction(selectedTouchAction) {
+    TouchAction = selectedTouchAction;
+    setSettings(selectedTouchAction, 'TouchAction');
+}
+
 function selectedOscDialChannel(oscDialSelect) {
     if (oscDialSelect == undefined) {
         oscDialSelect = parseInt(actionInfo.payload.settings.SelectedAction);
     }
     const channelCount = actionInfo.payload.settings.ChannelCount;
+    var dialFunction = DialFunction;
+    if (dialFunction == undefined || dialFunction === null || dialFunction === "") {
+        dialFunction = "volume";
+    }
+    var addressPrefix = dialFunction === "pan" ? "/1/pan" : "/1/volume";
     if (oscDialSelect <= channelCount) {
-        name = "/1/volume" + oscDialSelect;
+        name = addressPrefix + oscDialSelect;
         bus = "Input";
     } else if (oscDialSelect > channelCount && oscDialSelect <= channelCount * 2) {
-        name = "/1/volume" + (oscDialSelect - channelCount);
+        name = addressPrefix + (oscDialSelect - channelCount);
         bus = "Playback";
     } else {
-        name = "/1/volume" + (oscDialSelect - channelCount * 2);
+        name = addressPrefix + (oscDialSelect - channelCount * 2);
         bus = "Output";
     }
 
