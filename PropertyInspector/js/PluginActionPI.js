@@ -45,6 +45,16 @@ function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, 
         SelectedFunction = actionInfo.payload.settings.SelectedFunction;
         DisplayChannelName = actionInfo.payload.settings.DisplayChannelName;
         ChannelCount = actionInfo.payload.settings.ChannelCount;
+    } else if (actionInfo.action === "de.shells.totalmix.oscdial.action") {
+        Name = actionInfo.payload.settings.Name;
+        SelectedAction = actionInfo.payload.settings.SelectedAction;
+        Bus = actionInfo.payload.settings.Bus;
+        DisplayChannelName = actionInfo.payload.settings.DisplayChannelName;
+        ChannelCount = actionInfo.payload.settings.ChannelCount;
+        DialStep = actionInfo.payload.settings.DialStep;
+        if (DialStep == undefined || DialStep === null || DialStep === "") {
+            DialStep = 0.02;
+        }
     } else if (actionInfo.action === "de.shells.totalmix.midinote.action") {
         Channel = actionInfo.payload.settings.Channel;
         SelectedMidiAction = actionInfo.payload.settings.SelectedMidiAction;
@@ -126,6 +136,7 @@ function setSettings(value, param) {
     if (param === "ControlValue") { ControlValue = payload.ControlValue }
     if (param === "DisplayChannelName") { DisplayChannelName = payload.DisplayChannelName }
     if (param === "ChannelCount") { ChannelCount = payload.ChannelCount }
+    if (param === "DialStep") { DialStep = payload.DialStep }
     if (actionInfo.action === "de.shells.totalmix.osctoggle.action") {
         settings = {
             Name: Name,
@@ -152,6 +163,15 @@ function setSettings(value, param) {
             SelectedFunction: SelectedFunction,
             DisplayChannelName: DisplayChannelName,
             ChannelCount: ChannelCount
+        }
+    } else if (actionInfo.action === "de.shells.totalmix.oscdial.action") {
+        settings = {
+            Name: Name,
+            SelectedAction: SelectedAction,
+            Bus: Bus,
+            DisplayChannelName: DisplayChannelName,
+            ChannelCount: ChannelCount,
+            DialStep: DialStep
         }
     } else if (actionInfo.action === "de.shells.totalmix.midinote.action") {
         settings = {
@@ -748,6 +768,78 @@ function updateUI(pl, settings) {
         } else {
             document.getElementById("chk0").checked = false;
         }
+    } else if (pl === "de.shells.totalmix.oscdial.action") {
+        let x = ['<div class="sdpi-item" id="select_single">',
+            '    <div class="sdpi-item-label">Select Channel</div>',
+            '    <select class="sdpi-item-value select" id="OscDialSelect" onchange="selectedOscDialChannel(event.target.value);">',
+            '    <optgroup label="Inputs" id="Inputs">',
+            '    </optgroup>',
+            '    <optgroup label="Software" id="Playbacks">',
+            '    </optgroup>',
+            '    <optgroup label="Outputs" id="Outputs">',
+            '    </optgroup></select>',
+            '</div>',
+            '<div type="checkbox" class="sdpi-item">',
+            '       <div class="sdpi-item-label">Display Channel Name</div>',
+            '       <input class="sdpi-item-value" id="chk2" type="checkbox" value="displayChannelName" onclick="displayChannelName(this)">',
+            '       <label for="chk2"><span></span></label>',
+            '</div>',
+            '<div class="sdpi-item">',
+            '    <div class="sdpi-item-label">Dial Step</div>',
+            '    <input class="sdpi-item-value" id="DialStep" type="number" min="0.001" max="1" step="0.001" onchange="setDialStep(event.target.value)">',
+            '</div>',
+            '<div class="sdpi-item">',
+            '    <div class="sdpi-item-label">Help</div>',
+            '    <details class="sdpi-item-value">',
+            '        <summary>Default Dial Mapping</summary>',
+            '        <p><font style="font-weight:bold">Rotate</font>: Volume (per tick).<br><font style="font-style: italic">Available: All Channels</font></p>',
+            '        <p><font style="font-weight:bold">Press</font>: Reset to 0 dB (unity gain).</p>',
+            '        <p><font style="font-weight:bold">Touch</font>: Toggle Mute.<br><font style="font-style: italic">Requires mirroring for state</font></p>',
+            '        <p><font style="font-weight:bold">Dial Step</font>: 0.001 to 1.0 (default 0.02).</p>',
+            '    </details>',
+            '</div>',
+            '<div class="sdpi-item">',
+            '    <div class="sdpi-item-label">Details</div>',
+            '    <details class="sdpi-item-value">',
+            '        <summary>More Info</summary>',
+            '        <p>Make sure TotalMix FX has OSC setup and it\'s in use.</p>',
+            '<p>Note: I developed and tested this plugin on a Fireface UC - which is the box I have at home. Drop me an issue on GitHub in case something doesn\'t work as expected on other hardware and I see if we can figure that out</p>',
+            '<p><span class="linkspan" onclick="openWebsite()">Link: more detailed instructions</span></p>',
+            '    </details>',
+            '</div>'].join('');
+        document.getElementById('placeholder').innerHTML = x;
+        for (var i = 1; i < settings.ChannelCount + 1; i++) {
+            var elem = document.createElement("option");
+            elem.value = i;
+            elem.innerText = "Input Channel " + i;
+            document.getElementById("Inputs").appendChild(elem);
+        }
+        for (var i = 1; i < settings.ChannelCount + 1; i++) {
+            var elem = document.createElement("option");
+            elem.value = i + settings.ChannelCount;
+            elem.innerText = "Playback Channel " + i;
+            document.getElementById("Playbacks").appendChild(elem);
+        }
+        for (var i = 1; i < settings.ChannelCount + 1; i++) {
+            var elem = document.createElement("option");
+            elem.value = i + (settings.ChannelCount * 2);
+            elem.innerText = "Output Channel " + i;
+            document.getElementById("Outputs").appendChild(elem);
+        }
+        if (settings.SelectedAction === undefined) {
+            document.getElementById('OscDialSelect').value = "1";
+        } else {
+            document.getElementById('OscDialSelect').value = settings.SelectedAction;
+        }
+        if (settings.DisplayChannelName == true) {
+            document.getElementById("chk2").checked = true;
+        } else {
+            document.getElementById("chk2").checked = false;
+        }
+        if (settings.DialStep == undefined || settings.DialStep === null || settings.DialStep === "") {
+            settings.DialStep = 0.02;
+        }
+        document.getElementById("DialStep").value = settings.DialStep;
     }
 }
 
@@ -836,6 +928,23 @@ function displayChannelName(state) {
     } else {
     //    console.log("checkbox unchecked");
         setSettings(false, 'DisplayChannelName');
+    }
+}
+
+function setDialStep(value) {
+    var parsed = parseFloat(value);
+    if (isNaN(parsed)) {
+        return;
+    }
+    if (parsed < 0.001) {
+        parsed = 0.001;
+    } else if (parsed > 1.0) {
+        parsed = 1.0;
+    }
+    DialStep = parsed;
+    setSettings(parsed, 'DialStep');
+    if (document.getElementById("DialStep")) {
+        document.getElementById("DialStep").value = parsed;
     }
 }
 
@@ -1170,6 +1279,27 @@ function selectedOscChannelFunction(selectedOscChannelFunction, oscChannelSelect
     }
 
     setSettings(selectedOscChannelFunction, "SelectedFunction");
+    setSettings(name, 'Name');
+    setSettings(bus, 'Bus');
+}
+
+function selectedOscDialChannel(oscDialSelect) {
+    if (oscDialSelect == undefined) {
+        oscDialSelect = parseInt(actionInfo.payload.settings.SelectedAction);
+    }
+    const channelCount = actionInfo.payload.settings.ChannelCount;
+    if (oscDialSelect <= channelCount) {
+        name = "/1/volume" + oscDialSelect;
+        bus = "Input";
+    } else if (oscDialSelect > channelCount && oscDialSelect <= channelCount * 2) {
+        name = "/1/volume" + (oscDialSelect - channelCount);
+        bus = "Playback";
+    } else {
+        name = "/1/volume" + (oscDialSelect - channelCount * 2);
+        bus = "Output";
+    }
+
+    setSettings(oscDialSelect, "SelectedAction");
     setSettings(name, 'Name');
     setSettings(bus, 'Bus');
 }

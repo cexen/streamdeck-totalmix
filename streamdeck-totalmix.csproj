@@ -83,6 +83,7 @@
     <Compile Include="Helper\Globals.cs" />
     <Compile Include="Helper\HelperFunctions.cs" />
     <Compile Include="Helper\OSCCommunicator\Sender.cs" />
+    <Compile Include="OscDial.cs" />
     <Compile Include="OscOnOff.cs" />
     <Compile Include="OscChannel.cs" />
     <Compile Include="OscToggle.cs" />
@@ -388,6 +389,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="PropertyInspector\PluginActionPI.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="layouts\\osc-dial.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="previews\1-preview.png">

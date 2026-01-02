@@ -94,6 +94,37 @@
       "SupportedInMultiActions": true,
       "Tooltip": "OSC: Control Channel",
       "UUID": "de.shells.totalmix.oscchannel.action"
+    },
+    {
+      "Icon": "Images/actionIcon",
+      "Name": "OSC: Dial Channel",
+      "States": [
+        {
+          "Image": "Images/actionDefaultImage",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        },
+        {
+          "Image": "Images/actionDefaultImage",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true,
+      "Tooltip": "OSC: Dial Channel",
+      "UUID": "de.shells.totalmix.oscdial.action",
+      "Controllers": [
+        "Encoder"
+      ],
+      "Encoder": {
+        "Icon": "Images/actionIcon",
+        "layout": "layouts/osc-dial.json",
+        "TriggerDescription": {
+          "Push": "Reset to 0 dB",
+          "Rotate": "Adjust volume",
+          "Touch": "Toggle mute"
+        }
+      }
     }
   ],
   "Category": "TotalMix FX Control",

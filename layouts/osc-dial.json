@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+  "id": "osc-dial",
+  "items": [
+    {
+      "key": "title",
+      "type": "text",
+      "rect": [12, 4, 176, 16],
+      "color": "#ffffff",
+      "font": { "size": 12, "weight": 600 },
+      "alignment": "left",
+      "text-overflow": "ellipsis",
+      "value": ""
+    },
+    {
+      "key": "channel",
+      "type": "text",
+      "rect": [12, 22, 176, 16],
+      "color": "#ffffff",
+      "font": { "size": 12, "weight": 400 },
+      "alignment": "left",
+      "text-overflow": "ellipsis",
+      "value": ""
+    },
+    {
+      "key": "mute",
+      "type": "text",
+      "rect": [12, 40, 16, 20],
+      "color": "#ff6b6b",
+      "font": { "size": 14, "weight": 700 },
+      "alignment": "left",
+      "text-overflow": "ellipsis",
+      "value": ""
+    },
+    {
+      "key": "value",
+      "type": "text",
+      "rect": [32, 40, 120, 20],
+      "color": "#ffffff",
+      "font": { "size": 16, "weight": 600 },
+      "alignment": "right",
+      "text-overflow": "ellipsis",
+      "value": ""
+    },
+    {
+      "key": "unit",
+      "type": "text",
+      "rect": [156, 40, 32, 20],
+      "color": "#ffffff",
+      "font": { "size": 12, "weight": 600 },
+      "alignment": "left",
+      "text-overflow": "ellipsis",
+      "value": "dB"
+    },
+    {
+      "key": "bar",
+      "type": "bar",
+      "rect": [12, 66, 176, 16],
+      "range": { "min": 0, "max": 1 },
+      "value": 0,
+      "bar_bg_c": "#2b2b2b",
+      "bar_fill_c": "#4cc2ff",
+      "bar_border_c": "#1a1a1a",
+      "border_w": 2,
+      "subtype": 4
+    }
+  ]
+}
